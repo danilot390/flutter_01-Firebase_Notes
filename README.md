@@ -113,11 +113,16 @@ fvm flutter test
 
 ```tree
 ├── .github
+|   └── ISSUE_TEMPLATE
+│       ├── bug_report.md
+│       └── feature_request.md
 │   └── workflows
 │       ├── release-please.yml
 │       └── verify.yml
 ├── android/
 ├── build/
+├── docs
+│   └── decisions
 ├── ios/
 ├── lib/
 ├── linux/
@@ -130,6 +135,8 @@ fvm flutter test
 ├── .gitignore
 ├── .metadata
 ├── LICENSE
+├── CONTRIBUTING.md
+├── CHANGEGLOG.md
 ├── README.md
 ├── analysis_options.yaml
 ├── flutter_01_firebase_notes.iml
