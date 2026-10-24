@@ -57,6 +57,7 @@ unlinked_spec.ds
 **/android/**/GeneratedPluginRegistrant.java
 **/android/key.properties
 *.jks
+*.keystore
 
 # iOS/XCode related
 **/ios/**/*.mode1v3
@@ -129,3 +130,10 @@ app.*.symbols
 # VS Code
 .vscode/
 !.vscode/extensions.json
+
+# Node dependencies
+node_modules/
+
+# Firebase Native Config Files
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
