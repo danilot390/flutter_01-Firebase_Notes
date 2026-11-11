@@ -62,7 +62,6 @@ class DefaultFirebaseOptions {
     projectId: 'flutter-notes-11e04',
     storageBucket: 'flutter-notes-11e04.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyD9NDyKxXgH_pEDPHMF4UbHYX8V3y2wQhU',
     appId: '1:16169198584:ios:b25b2efc386f81bffaac0d',
