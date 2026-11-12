@@ -21,20 +21,10 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-if (snapshot.hasError) {
-  debugPrint('AUTH STREAM ERROR: ${snapshot.error}');
-  debugPrint('AUTH STREAM STACK: ${snapshot.stackTrace}');
-
-  return Scaffold(
-    body: Center(
-      child: SelectableText(
-        'Authentication error: ${snapshot.error}\n\n'
-        '${snapshot.stackTrace}',
-        textAlign: TextAlign.center,
-      ),
-    ),
-  );
-}
+        if (snapshot.hasError) {
+          debugPrint('AUTH STREAM ERROR: ${snapshot.error}');
+          debugPrint('AUTH STREAM STACK: ${snapshot.stackTrace}');
+        }
 
         final user = snapshot.data;
 

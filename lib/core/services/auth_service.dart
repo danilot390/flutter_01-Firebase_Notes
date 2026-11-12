@@ -10,8 +10,7 @@ class AuthService {
   User? get currentUser => _firebaseAuth.currentUser;
 
   // Emits authentication state changes.
-  Stream<User?> get authStateChanges =>
-      _firebaseAuth.authStateChanges();
+  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
   // Create a new account with the given email and password.
   Future<UserCredential> register({
