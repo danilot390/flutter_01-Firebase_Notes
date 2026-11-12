@@ -45,7 +45,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Please sign in'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Password'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Sign in'), findsOneWidget);
   });
 
   testWidgets('shows authenticated screen when user exists', (tester) async {
