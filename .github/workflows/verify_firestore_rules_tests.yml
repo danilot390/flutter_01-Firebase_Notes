@@ -31,4 +31,4 @@ jobs:
       - name: Run Firestore Security Rules tests
         run: >
           firebase emulators:exec --project demo-notes 
-          --only firestore "npx --prefix firebase/rules-tests test"
+          --only firestore "npm --prefix firebase/rules-tests test"
