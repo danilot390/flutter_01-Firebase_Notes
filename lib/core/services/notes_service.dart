@@ -16,10 +16,12 @@ class NotesService {
   Future<String> createNote({
     required String title,
     required String content,
+    required String ownerId,
   }) async {
     final document = _notesCollection.doc();
 
     await document.set({
+      'ownerId': ownerId,
       'title': title.trim(),
       'content': content.trim(),
       'isFavourite': false,
@@ -47,6 +49,7 @@ class NotesService {
 
   Future<void> updateNote({
     required String noteId,
+    String? ownerId,
     String? title,
     String? content,
     bool? isFavourite,
@@ -67,6 +70,10 @@ class NotesService {
       updates['isFavourite'] = isFavourite;
     }
 
+    if (ownerId != null) {
+      updates['ownerId'] = ownerId;
+    }
+
     await _notesCollection.doc(noteId).update(updates);
   }
 
@@ -82,6 +89,7 @@ class NotesService {
 
     return Note(
       id: document.id,
+      ownerId: data['ownerId'] as String,
       title: data['title'] as String,
       content: data['content'] as String,
       isFavourite: data['isFavourite'] as bool? ?? false,

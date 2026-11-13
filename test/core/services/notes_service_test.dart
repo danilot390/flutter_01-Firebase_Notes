@@ -18,6 +18,7 @@ void main() {
       final noteId = await notesService.createNote(
         title: 'Learn Flutter',
         content: 'Study Firestore integration.',
+        ownerId: 'user-1',
       );
 
       final notes = await notesService.getNotes();
@@ -33,6 +34,7 @@ void main() {
       final noteId = await notesService.createNote(
         title: 'Original title',
         content: 'Original content',
+        ownerId: 'user-1',
       );
 
       await notesService.updateNote(
@@ -53,6 +55,7 @@ void main() {
       final noteId = await notesService.createNote(
         title: 'Temporary note',
         content: 'This note will be deleted.',
+        ownerId: 'user-1',
       );
 
       await notesService.deleteNote(noteId);
@@ -66,6 +69,7 @@ void main() {
       await notesService.createNote(
         title: 'Private note',
         content: 'Belongs to user 1.',
+        ownerId: 'user-1',
       );
 
       final secondUserService = NotesService(
@@ -96,6 +100,7 @@ void main() {
       await notesService.createNote(
         title: 'Streamed note',
         content: 'Testing snapshots.',
+        ownerId: 'user-1',
       );
 
       await expectation;
