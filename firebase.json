@@ -1,0 +1,44 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "flutter-notes-11e04",
+          "appId": "1:16169198584:android:9c88085f3470d726faac0d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "flutter-notes-11e04",
+          "appId": "1:16169198584:ios:b25b2efc386f81bffaac0d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "flutter-notes-11e04",
+          "configurations": {
+            "android": "1:16169198584:android:9c88085f3470d726faac0d",
+            "ios": "1:16169198584:ios:b25b2efc386f81bffaac0d",
+            "web": "1:16169198584:web:8ac36471bbb3553efaac0d"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firebase/firestore.rules"
+  },
+  "emulators": {
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  }
+}
