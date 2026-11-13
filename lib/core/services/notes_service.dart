@@ -74,7 +74,7 @@ class NotesService {
     await _notesCollection.doc(noteId).delete();
   }
 
-  Note _noteFromDocument(QueryDocumentSnapshot<Map<String, dynamic>> document, ) {
+  Note _noteFromDocument(QueryDocumentSnapshot<Map<String, dynamic>> document) {
     final data = document.data();
 
     final createdAt = data['createdAt'];
