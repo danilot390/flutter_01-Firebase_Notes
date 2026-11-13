@@ -88,8 +88,7 @@ void main() {
           predicate<List<Note>>(
             (notes) =>
                 // notes != null &&
-                notes.length == 1 &&
-                notes.first.title == 'Streamed note',
+                notes.length == 1 && notes.first.title == 'Streamed note',
           ),
         ]),
       );
