@@ -1,6 +1,12 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../domain/entities/app_user.dart';
-import '../../domain/repositories/auth_user.dart';
+import '../../domain/errors/auth_failure.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../datasources/firebase_auth_data_source.dart';
+import '../mappers/firebase_auth_exception_mapper.dart';
 import '../mappers/firebase_auth_user_mapper.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -10,42 +16,70 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   AppUser? get currentUser {
-    final user = _dataSource.currentUser;
+    try {
+      final user = _dataSource.currentUser;
 
-    if (user == null) return null;
+      if (user == null) return null;
 
-    return FirebaseAuthUserMapper.toDomain(user);
+      return FirebaseAuthUserMapper.toDomain(user);
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(_mapFailure(error), stackTrace);
+    }
   }
 
   @override
-  Future<AppUser> register({
-    required String email,
-    required String password,
-  }) async {
-    final user = await _dataSource.register(email: email, password: password);
+  Future<AppUser> register({required String email, required String password}) {
+    return _guard(() async {
+      final user = await _dataSource.register(email: email, password: password);
 
-    return FirebaseAuthUserMapper.toDomain(user);
+      return FirebaseAuthUserMapper.toDomain(user);
+    });
   }
 
   @override
-  Future<AppUser> signIn({
-    required String email,
-    required String password,
-  }) async {
-    final user = await _dataSource.signIn(email: email, password: password);
+  Future<AppUser> signIn({required String email, required String password}) {
+    return _guard(() async {
+      final user = await _dataSource.signIn(email: email, password: password);
 
-    return FirebaseAuthUserMapper.toDomain(user);
+      return FirebaseAuthUserMapper.toDomain(user);
+    });
   }
 
   @override
-  Future<void> signOut() => _dataSource.signOut();
+  Future<void> signOut() {
+    return _guard(() => _dataSource.signOut());
+  }
 
   @override
   Stream<AppUser?> watchAuthState() {
-    return _dataSource.authStateChanges.map((user) {
+    final userStream = _dataSource.authStateChanges.map((user) {
       if (user == null) return null;
 
       return FirebaseAuthUserMapper.toDomain(user);
     });
+
+    return userStream.transform(
+      StreamTransformer<AppUser?, AppUser?>.fromHandlers(
+        handleError: (error, stackTrace, sink) {
+          sink.addError(_mapFailure(error), stackTrace);
+        },
+      ),
+    );
+  }
+
+  Future<T> _guard<T>(Future<T> Function() operation) async {
+    try {
+      return await operation();
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(_mapFailure(error), stackTrace);
+    }
+  }
+
+  AuthFailure _mapFailure(Object error) {
+    if (error is FirebaseAuthException) {
+      return FirebaseAuthExceptionMapper.toFailure(error);
+    }
+
+    return const AuthFailure(AuthFailureCode.unexpected);
   }
 }
