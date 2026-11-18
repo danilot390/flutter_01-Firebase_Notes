@@ -1,77 +1,122 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/services/auth_service.dart';
+import '../domain/entities/app_user.dart';
+import 'providers/auth_dependencies.dart';
 import 'auth_screen.dart';
+import 'controllers/auth_controller.dart';
+import 'utils/auth_failure_message.dart';
+import '../domain/errors/auth_failure.dart';
 
-class AuthGate extends StatelessWidget {
-  AuthGate({super.key, AuthService? authService})
-    : _authService = authService ?? AuthService();
-
-  final AuthService _authService;
+class AuthGate extends ConsumerWidget {
+  const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: _authService.authStateChanges,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
 
-        if (snapshot.hasError) {
-          debugPrint('AUTH STREAM ERROR: ${snapshot.error}');
-          debugPrint('AUTH STREAM STACK: ${snapshot.stackTrace}');
-        }
-
-        final user = snapshot.data;
-
+    return authState.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stackTrace) => Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Unable to check authentication status.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {
+                    ref.invalidate(authStateProvider);
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      data: (user) {
         if (user == null) {
-          return AuthScreen(authService: _authService);
+          return const AuthScreen();
         }
 
-        return AuthenticatedScreen(user: user, authService: _authService);
+        return AuthenticatedScreen(user: user);
       },
     );
   }
 }
 
-class AuthenticatedScreen extends StatelessWidget {
-  const AuthenticatedScreen({
-    required this.user,
-    required this.authService,
-    super.key,
-  });
+class AuthenticatedScreen extends ConsumerWidget {
+  const AuthenticatedScreen({required this.user, super.key});
 
-  final User user;
-  final AuthService authService;
+  final AppUser user;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final actionState = ref.watch(authControllerProvider);
+
+    final errorMessage = actionState.hasError
+        ? _messageFor(actionState.error)
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Firebase Notes'),
         actions: [
           IconButton(
             tooltip: 'Sign out',
-            onPressed: () async {
-              try {
-                await authService.signOut();
-              } catch (_) {
-                if (!context.mounted) return;
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Unable to sign out.')),
-                );
-              }
-            },
+            onPressed: actionState.isLoading
+                ? null
+                : () {
+                    ref.read(authControllerProvider.notifier).signOut();
+                  },
             icon: const Icon(Icons.logout),
           ),
         ],
       ),
-      body: Center(child: Text('Welcome: ${user.uid}')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Welcome: ${user.id}'),
+              if (user.email != null) ...[
+                const SizedBox(height: 8),
+                Text(user.email!),
+              ],
+              if (actionState.isLoading) ...[
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(),
+              ],
+              if (errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  errorMessage,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  String _messageFor(Object? error) {
+    if (error is AuthFailure) {
+      return AuthFailureMessage.fromFailure(error);
+    }
+
+    return 'Something went wrong. Please try again.';
   }
 }
