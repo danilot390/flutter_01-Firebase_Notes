@@ -144,7 +144,20 @@ test('invalid note documents are rejected', async () => {
   );
 });
 
-// 5. Alice can read her own note.
+// 5. Nested collection path is not allowed.
+
+test('nested user notes path is rejected', async () => {
+  const db = getUserDb('alice');
+
+  await assertFails(
+    setDoc(
+      doc(db, 'users', 'alice', 'notes', 'nested-note'),
+      validNote('alice'),
+    ),
+  );
+});
+
+// 6. Alice can read her own note.
 
 test('user can read their own note', async () => {
   await seedNote('alice-note', 'alice');
@@ -156,7 +169,7 @@ test('user can read their own note', async () => {
   );
 });
 
-// 6. Alice cannot read Bob's note.
+// 7. Alice cannot read Bob's note.
 
 test('user cannot read another user note', async () => {
   await seedNote('bob-note', 'bob');
@@ -168,7 +181,7 @@ test('user cannot read another user note', async () => {
   );
 });
 
-// 7. Queries must constrain ownerId.
+// 8. Queries must constrain ownerId.
 
 test('user can query only their own notes', async () => {
   await seedNote('alice-note', 'alice');
@@ -189,7 +202,7 @@ test('user can query only their own notes', async () => {
   assert.equal(result.docs[0].id, 'alice-note');
 });
 
-// 8. Unfiltered queries must fail.
+// 9. Unfiltered queries must fail.
 
 test('unfiltered note queries are rejected', async () => {
   await seedNote('alice-note', 'alice');
@@ -202,7 +215,7 @@ test('unfiltered note queries are rejected', async () => {
   );
 });
 
-// 9. Alice can update her own note.
+// 10. Alice can update her own note.
 
 test('user can update their own note', async () => {
   await seedNote('alice-note', 'alice');
@@ -217,7 +230,7 @@ test('user can update their own note', async () => {
   );
 });
 
-// 10. Alice cannot change ownership.
+// 11. Alice cannot change ownership.
 
 test('user cannot change note ownership', async () => {
   await seedNote('alice-note', 'alice');
@@ -232,7 +245,7 @@ test('user cannot change note ownership', async () => {
   );
 });
 
-// 11. Alice cannot change creation timestamp.
+// 12. Alice cannot change creation timestamp.
 
 test('user cannot change createdAt', async () => {
   await seedNote('alice-note', 'alice');
@@ -249,7 +262,7 @@ test('user cannot change createdAt', async () => {
   );
 });
 
-// 12. Alice can delete her own note.
+// 13. Alice can delete her own note.
 
 test('user can delete their own note', async () => {
   await seedNote('alice-note', 'alice');
@@ -261,7 +274,8 @@ test('user can delete their own note', async () => {
   );
 });
 
-// 13. Alice cannot delete Bob's note.
+// 14. Alice cannot delete Bob's note.
+
 test('user cannot delete another user note', async () => {
   await seedNote('bob-note', 'bob');
 
@@ -272,7 +286,7 @@ test('user cannot delete another user note', async () => {
   );
 });
 
-// 14. Alice cannot update Bob's note.
+// 15. Alice cannot update Bob's note.
 
 test('user cannot update another user note', async () => {
   await seedNote('bob-note', 'bob');
@@ -287,7 +301,8 @@ test('user cannot update another user note', async () => {
   );
 });
 
-// 15 . Alice can update her own note favourite status.
+// 16. Alice can update her own note favourite status.
+
 test('user can update their own note favourite status', async () => {
   await seedNote('alice-note', 'alice');
 
@@ -307,7 +322,8 @@ test('user can update their own note favourite status', async () => {
   assert.equal(result.data().isFavourite, true);
 });
 
-// 16 . Invalid favourite values are rejected.
+// 17. Invalid favourite values are rejected.
+
 test('invalid favourite values are rejected', async () => {
   const db = getUserDb('alice');
 
