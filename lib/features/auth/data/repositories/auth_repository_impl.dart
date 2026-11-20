@@ -51,6 +51,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _guard(() => _dataSource.sendPasswordResetEmail(email: email));
+  }
+
+  @override
   Stream<AppUser?> watchAuthState() {
     final userStream = _dataSource.authStateChanges.map((user) {
       if (user == null) return null;

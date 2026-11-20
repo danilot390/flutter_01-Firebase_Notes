@@ -7,6 +7,9 @@ abstract interface class AuthRepository {
   // Sings in an existing user with email and password
   Future<AppUser> signIn({required String email, required String password});
 
+  // Send password reset email
+  Future<void> sendPasswordResetEmail({required String email});
+
   // Signs out the current user
   Future<void> signOut();
 

@@ -42,5 +42,9 @@ class FirebaseAuthDataSource {
     return user;
   }
 
+  Future<void> sendPasswordResetEmail({required String email}) {
+    return _firebaseAuth.sendPasswordResetEmail(email: email.trim());
+  }
+
   Future<void> signOut() => _firebaseAuth.signOut();
 }

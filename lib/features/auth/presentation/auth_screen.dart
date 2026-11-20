@@ -44,6 +44,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    final emailError = _validateEmail(email);
+
+    if (emailError != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(emailError)));
+      return;
+    }
+
+    await ref
+        .read(authControllerProvider.notifier)
+        .sendPasswordResetEmail(email: email);
+
+    if (!mounted) return;
+
+    final result = ref.read(authControllerProvider);
+
+    if (!result.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    }
+  }
+
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
 
@@ -172,6 +199,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           : 'Create an account',
                     ),
                   ),
+                  if (!_isRegistering)
+                    TextButton(
+                      onPressed: isLoading ? null : _resetPassword,
+                      child: const Text('Forgot password?'),
+                    ),
                 ],
               ),
             ),

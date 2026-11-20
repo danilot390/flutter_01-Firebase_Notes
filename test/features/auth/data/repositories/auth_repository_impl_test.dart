@@ -175,4 +175,32 @@ void main() {
       verify(() => dataSource.signOut()).called(1);
     });
   });
+
+  group('sendPasswordResetEmail', () {
+    test('delegates password reset to the data source', () async {
+      when(() => dataSource.sendPasswordResetEmail(email: testEmail))
+          .thenAnswer((_) async {});
+
+      await repository.sendPasswordResetEmail(email: testEmail);
+
+      verify(() => dataSource.sendPasswordResetEmail(email: testEmail))
+          .called(1);
+    });
+
+    test('maps FirebaseAuthException to AuthFailure', () async {
+      when(() => dataSource.sendPasswordResetEmail(email: testEmail))
+          .thenThrow(FirebaseAuthException(code: 'invalid-email'));
+
+      expect(
+        () => repository.sendPasswordResetEmail(email: testEmail),
+        throwsA(
+          isA<AuthFailure>().having(
+            (failure) => failure.code,
+            'code',
+            AuthFailureCode.invalidEmail,
+          ),
+        ),
+      );
+    });
+  });
 }
