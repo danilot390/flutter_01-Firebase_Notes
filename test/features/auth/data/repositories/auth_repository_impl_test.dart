@@ -82,6 +82,22 @@ void main() {
         ),
       );
     });
+
+    test('maps unexpected exceptions to AuthFailure', () async {
+      when(() => dataSource.register(email: testEmail, password: testPassword))
+          .thenThrow(StateError('Unexpected data source error'));
+
+      expect(
+        () => repository.register(email: testEmail, password: testPassword),
+        throwsA(
+          isA<AuthFailure>().having(
+            (failure) => failure.code,
+            'code',
+            AuthFailureCode.unexpected,
+          ),
+        ),
+      );
+    });
   });
 
   group('signIn', () {
@@ -146,6 +162,23 @@ void main() {
             (failure) => failure.code,
             'code',
             AuthFailureCode.tooManyRequests,
+          ),
+        ),
+      );
+    });
+
+    test('maps unexpected stream errors to AuthFailure', () async {
+      when(() => dataSource.authStateChanges).thenAnswer(
+        (_) => Stream<User?>.error(StateError('Unexpected stream error')),
+      );
+
+      await expectLater(
+        repository.watchAuthState(),
+        emitsError(
+          isA<AuthFailure>().having(
+            (failure) => failure.code,
+            'code',
+            AuthFailureCode.unexpected,
           ),
         ),
       );

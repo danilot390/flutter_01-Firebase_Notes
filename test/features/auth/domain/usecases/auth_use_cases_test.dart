@@ -114,6 +114,8 @@ void main() {
       when(() => repository.signOut()).thenThrow(failure);
 
       expect(() => useCase(), throwsA(same(failure)));
+
+      verify(() => repository.signOut()).called(1);
     });
   });
 
@@ -165,6 +167,9 @@ void main() {
           .thenThrow(failure);
 
       expect(() => useCase(email: testEmail), throwsA(same(failure)));
+
+      verify(() => repository.sendPasswordResetEmail(email: testEmail))
+          .called(1);
     });
   });
 }
