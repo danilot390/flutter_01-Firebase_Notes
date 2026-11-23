@@ -1,4 +1,3 @@
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,56 +37,56 @@ void main() {
     await firebaseAuth.signOut();
   });
 
-  testWidgets(
-    'registers, restores auth state, signs in and signs out',
-    (tester) async {
-      final email = 'integration-${DateTime.now().microsecondsSinceEpoch}@example.com';
-      const password = 'StrongPassword123!';
+  testWidgets('registers, restores auth state, signs in and signs out', (
+    tester,
+  ) async {
+    final email =
+        'integration-${DateTime.now().microsecondsSinceEpoch}@example.com';
+    const password = 'StrongPassword123!';
 
-      // Subscribe before registration so the auth-state event is observed.
-      final signedInEvent = repository
-          .watchAuthState()
-          .firstWhere((user) => user != null);
+    // Subscribe before registration so the auth-state event is observed.
+    final signedInEvent = repository.watchAuthState().firstWhere(
+      (user) => user != null,
+    );
 
-      final registeredUser = await repository.register(
-        email: email,
-        password: password,
-      );
+    final registeredUser = await repository.register(
+      email: email,
+      password: password,
+    );
 
-      expect(registeredUser.email, email);
-      expect(registeredUser.id, isNotEmpty);
+    expect(registeredUser.email, email);
+    expect(registeredUser.id, isNotEmpty);
 
-      final emittedUser = await signedInEvent;
-      expect(emittedUser?.id, registeredUser.id);
-      expect(firebaseAuth.currentUser?.uid, registeredUser.id);
+    final emittedUser = await signedInEvent;
+    expect(emittedUser?.id, registeredUser.id);
+    expect(firebaseAuth.currentUser?.uid, registeredUser.id);
 
-      // Confirm the SDK exposes the authenticated user as its current user.
-      await firebaseAuth.currentUser!.reload();
-      expect(firebaseAuth.currentUser?.email, email);
+    // Confirm the SDK exposes the authenticated user as its current user.
+    await firebaseAuth.currentUser!.reload();
+    expect(firebaseAuth.currentUser?.email, email);
 
-      // Sign out and verify the auth-state stream emits null.
-      final signedOutEvent = repository
-          .watchAuthState()
-          .firstWhere((user) => user == null);
+    // Sign out and verify the auth-state stream emits null.
+    final signedOutEvent = repository.watchAuthState().firstWhere(
+      (user) => user == null,
+    );
 
-      await repository.signOut();
+    await repository.signOut();
 
-      await signedOutEvent;
-      expect(firebaseAuth.currentUser, isNull);
+    await signedOutEvent;
+    expect(firebaseAuth.currentUser, isNull);
 
-      // Sign in again with the same credentials.
-      final signedInUser = await repository.signIn(
-        email: email,
-        password: password,
-      );
+    // Sign in again with the same credentials.
+    final signedInUser = await repository.signIn(
+      email: email,
+      password: password,
+    );
 
-      expect(signedInUser.id, registeredUser.id);
-      expect(firebaseAuth.currentUser?.uid, registeredUser.id);
+    expect(signedInUser.id, registeredUser.id);
+    expect(firebaseAuth.currentUser?.uid, registeredUser.id);
 
-      // Clean up the emulator account.
-      await firebaseAuth.currentUser!.delete();
+    // Clean up the emulator account.
+    await firebaseAuth.currentUser!.delete();
 
-      expect(firebaseAuth.currentUser, isNull);
-    },
-  );
+    expect(firebaseAuth.currentUser, isNull);
+  });
 }
