@@ -3,25 +3,34 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../features/notes/models/note.dart';
 
 class NotesService {
-  NotesService({required this._userId, FirebaseFirestore? firestore})
+  NotesService({required this.userId, FirebaseFirestore? firestore})
     : _firestore = firestore ?? FirebaseFirestore.instance;
 
-  final String _userId;
+  final String userId;
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _notesCollection {
-    return _firestore.collection('users').doc(_userId).collection('notes');
+    return _firestore.collection('notes');
+  }
+
+  Query<Map<String, dynamic>> get _userNotesQuery {
+    return _notesCollection
+        .where('ownerId', isEqualTo: userId)
+        .orderBy('updatedAt', descending: true);
   }
 
   Future<String> createNote({
     required String title,
     required String content,
-    required String ownerId,
   }) async {
+    if (userId.isEmpty) {
+      throw StateError('Cannot create a note without a valid userId.');
+    }
+
     final document = _notesCollection.doc();
 
     await document.set({
-      'ownerId': ownerId,
+      'ownerId': userId,
       'title': title.trim(),
       'content': content.trim(),
       'isFavourite': false,
@@ -33,23 +42,31 @@ class NotesService {
   }
 
   Future<List<Note>> getNotes() async {
-    final snapshot = await _notesCollection
-        .orderBy('updatedAt', descending: true)
-        .get();
+    if (userId.isEmpty) return [];
 
+    final snapshot = await _userNotesQuery.get();
     return snapshot.docs.map(_noteFromDocument).toList();
   }
 
   Stream<List<Note>> watchNotes() {
-    return _notesCollection
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.map(_noteFromDocument).toList());
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return _userNotesQuery.snapshots().map(
+      (snapshot) => snapshot.docs.map(_noteFromDocument).toList(),
+    );
+  }
+
+  Future<Note?> getNoteById(String noteId) async {
+    final doc = await _notesCollection.doc(noteId).get();
+    if (!doc.exists || doc.data() == null) return null;
+
+    return _noteFromDocument(doc);
   }
 
   Future<void> updateNote({
     required String noteId,
-    String? ownerId,
     String? title,
     String? content,
     bool? isFavourite,
@@ -70,9 +87,8 @@ class NotesService {
       updates['isFavourite'] = isFavourite;
     }
 
-    if (ownerId != null) {
-      updates['ownerId'] = ownerId;
-    }
+    // Prevents unnecessary writes if no actual fields were passed
+    if (updates.length == 1) return;
 
     await _notesCollection.doc(noteId).update(updates);
   }
@@ -81,17 +97,17 @@ class NotesService {
     await _notesCollection.doc(noteId).delete();
   }
 
-  Note _noteFromDocument(QueryDocumentSnapshot<Map<String, dynamic>> document) {
-    final data = document.data();
+  Note _noteFromDocument(DocumentSnapshot<Map<String, dynamic>> document) {
+    final data = document.data() ?? <String, dynamic>{};
 
     final createdAt = data['createdAt'];
     final updatedAt = data['updatedAt'];
 
     return Note(
       id: document.id,
-      ownerId: data['ownerId'] as String,
-      title: data['title'] as String,
-      content: data['content'] as String,
+      ownerId: data['ownerId'] as String? ?? '',
+      title: data['title'] as String? ?? '',
+      content: data['content'] as String? ?? '',
       isFavourite: data['isFavourite'] as bool? ?? false,
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
       updatedAt: updatedAt is Timestamp ? updatedAt.toDate() : null,

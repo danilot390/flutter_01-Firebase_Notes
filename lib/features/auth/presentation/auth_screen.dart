@@ -1,25 +1,23 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/services/auth_service.dart';
+import '../domain/errors/auth_failure.dart';
+import 'controllers/auth_controller.dart';
+import 'utils/auth_failure_message.dart';
 
-class AuthScreen extends StatefulWidget {
-  const AuthScreen({required this.authService, super.key});
-
-  final AuthService authService;
+class AuthScreen extends ConsumerStatefulWidget {
+  const AuthScreen({super.key});
 
   @override
-  State<AuthScreen> createState() => _AuthScreenState();
+  ConsumerState<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> {
+class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _isRegistering = false;
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -31,59 +29,46 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final controller = ref.read(authControllerProvider.notifier);
 
-    try {
-      if (_isRegistering) {
-        await widget.authService.register(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-      } else {
-        await widget.authService.signIn(
-          email: _emailController.text,
-          password: _passwordController.text,
-        );
-      }
-
-      // AuthGate reacts to Firebase's authentication stream.
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _errorMessage = _messageFor(error.code);
-      });
-    } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        _errorMessage = 'Something went wrong. Please try again.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (_isRegistering) {
+      await controller.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    } else {
+      await controller.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
   }
 
-  String _messageFor(String code) {
-    return switch (code) {
-      'email-already-in-use' => 'An account already exists for this email.',
-      'invalid-email' => 'Please enter a valid email address.',
-      'weak-password' => 'Your password is too weak.',
-      'user-not-found' => 'No account was found for this email.',
-      'wrong-password' ||
-      'invalid-credential' => 'The email or password is incorrect.',
-      'too-many-requests' => 'Too many attempts. Please try again later.',
-      'network-request-failed' =>
-        'Network error. Check your internet connection.',
-      _ => 'Authentication failed. Please try again.',
-    };
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    final emailError = _validateEmail(email);
+
+    if (emailError != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(emailError)));
+      return;
+    }
+
+    await ref
+        .read(authControllerProvider.notifier)
+        .sendPasswordResetEmail(email: email);
+
+    if (!mounted) return;
+
+    final result = ref.read(authControllerProvider);
+
+    if (!result.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    }
   }
 
   String? _validateEmail(String? value) {
@@ -114,8 +99,32 @@ class _AuthScreenState extends State<AuthScreen> {
     return null;
   }
 
+  String? _errorMessage(Object? error) {
+    if (error is AuthFailure) {
+      return AuthFailureMessage.fromFailure(error);
+    }
+
+    return 'Something went wrong. Please try again.';
+  }
+
+  void _toggleMode() {
+    ref.invalidate(authControllerProvider);
+
+    setState(() {
+      _isRegistering = !_isRegistering;
+      _formKey.currentState?.reset();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final actionState = ref.watch(authControllerProvider);
+    final isLoading = actionState.isLoading;
+
+    final errorMessage = actionState.hasError
+        ? _errorMessage(actionState.error)
+        : null;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isRegistering ? 'Create account' : 'Sign in'),
@@ -144,6 +153,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       border: OutlineInputBorder(),
                     ),
                     validator: _validateEmail,
+                    enabled: !isLoading,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -159,11 +169,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       border: OutlineInputBorder(),
                     ),
                     validator: _validatePassword,
+                    enabled: !isLoading,
                   ),
                   const SizedBox(height: 16),
-                  if (_errorMessage != null) ...[
+                  if (errorMessage != null) ...[
                     Text(
-                      _errorMessage!,
+                      errorMessage,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -171,8 +182,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 16),
                   ],
                   FilledButton(
-                    onPressed: _isLoading ? null : _submit,
-                    child: _isLoading
+                    onPressed: isLoading ? null : _submit,
+                    child: isLoading
                         ? const SizedBox(
                             height: 20,
                             width: 20,
@@ -181,21 +192,18 @@ class _AuthScreenState extends State<AuthScreen> {
                         : Text(_isRegistering ? 'Register' : 'Sign in'),
                   ),
                   TextButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            setState(() {
-                              _isRegistering = !_isRegistering;
-                              _errorMessage = null;
-                              _formKey.currentState?.reset();
-                            });
-                          },
+                    onPressed: isLoading ? null : _toggleMode,
                     child: Text(
                       _isRegistering
                           ? 'Already have an account? Sign in'
                           : 'Create an account',
                     ),
                   ),
+                  if (!_isRegistering)
+                    TextButton(
+                      onPressed: isLoading ? null : _resetPassword,
+                      child: const Text('Forgot password?'),
+                    ),
                 ],
               ),
             ),

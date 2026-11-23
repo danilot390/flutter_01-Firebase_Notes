@@ -1,34 +1,30 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_01_firebase_notes/core/services/auth_service.dart';
+import 'package:flutter_01_firebase_notes/features/auth/domain/entities/app_user.dart';
 import 'package:flutter_01_firebase_notes/features/auth/presentation/auth_gate.dart';
-import 'package:mocktail/mocktail.dart';
-
-class MockAuthService extends Mock implements AuthService {}
-
-class MockUser extends Mock implements User {}
+import 'package:flutter_01_firebase_notes/features/auth/presentation/providers/auth_dependencies.dart';
 
 void main() {
-  late MockAuthService authService;
-  late StreamController<User?> authController;
+  late StreamController<AppUser?> authStateController;
 
   setUp(() {
-    authService = MockAuthService();
-    authController = StreamController<User?>();
-
-    when(() => authService.authStateChanges)
-        .thenAnswer((_) => authController.stream);
+    authStateController = StreamController<AppUser?>();
   });
 
   tearDown(() async {
-    await authController.close();
+    await authStateController.close();
   });
 
   Widget createWidget() {
-    return MaterialApp(home: AuthGate(authService: authService));
+    return ProviderScope(
+      overrides: [
+        authStateProvider.overrideWith((ref) => authStateController.stream),
+      ],
+      child: const MaterialApp(home: AuthGate()),
+    );
   }
 
   testWidgets('shows loading indicator initially', (tester) async {
@@ -40,7 +36,7 @@ void main() {
   testWidgets('shows sign-in screen when user is null', (tester) async {
     await tester.pumpWidget(createWidget());
 
-    authController.add(null);
+    authStateController.add(null);
 
     await tester.pump();
     await tester.pump();
@@ -52,13 +48,18 @@ void main() {
   });
 
   testWidgets('shows authenticated screen when user exists', (tester) async {
-    final user = MockUser();
-
-    when(() => user.uid).thenReturn('test-user-123');
+    final user = AppUser(
+      id: 'test-user-123',
+      name: 'user-123',
+      email: 'test@example.com',
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
     await tester.pumpWidget(createWidget());
 
-    authController.add(user);
+    authStateController.add(user);
+
     await tester.pump();
     await tester.pump();
 

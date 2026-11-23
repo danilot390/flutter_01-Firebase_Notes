@@ -14,17 +14,43 @@ void main() {
   });
 
   group('NotesService', () {
+    test('creates a note in the top-level notes collection', () async {
+      final noteId = await notesService.createNote(
+        title: 'Learn Flutter',
+        content: 'Study Firestore integration.',
+      );
+
+      final document = await fakeFirestore
+          .collection('notes')
+          .doc(noteId)
+          .get();
+
+      expect(document.exists, isTrue);
+      expect(document.data()?['ownerId'], 'user-1');
+      expect(document.data()?['title'], 'Learn Flutter');
+      expect(document.data()?['content'], 'Study Firestore integration.');
+
+      final nestedDocument = await fakeFirestore
+          .collection('users')
+          .doc('user-1')
+          .collection('notes')
+          .doc(noteId)
+          .get();
+
+      expect(nestedDocument.exists, isFalse);
+    });
+
     test('creates and retrieves a note', () async {
       final noteId = await notesService.createNote(
         title: 'Learn Flutter',
         content: 'Study Firestore integration.',
-        ownerId: 'user-1',
       );
 
       final notes = await notesService.getNotes();
 
       expect(notes, hasLength(1));
       expect(notes.first.id, noteId);
+      expect(notes.first.ownerId, 'user-1');
       expect(notes.first.title, 'Learn Flutter');
       expect(notes.first.content, 'Study Firestore integration.');
       expect(notes.first.isFavourite, isFalse);
@@ -34,7 +60,6 @@ void main() {
       final noteId = await notesService.createNote(
         title: 'Original title',
         content: 'Original content',
-        ownerId: 'user-1',
       );
 
       await notesService.updateNote(
@@ -49,13 +74,13 @@ void main() {
       expect(notes.first.title, 'Updated title');
       expect(notes.first.content, 'Original content');
       expect(notes.first.isFavourite, isTrue);
+      expect(notes.first.ownerId, 'user-1');
     });
 
     test('deletes a note', () async {
       final noteId = await notesService.createNote(
         title: 'Temporary note',
         content: 'This note will be deleted.',
-        ownerId: 'user-1',
       );
 
       await notesService.deleteNote(noteId);
@@ -69,7 +94,6 @@ void main() {
       await notesService.createNote(
         title: 'Private note',
         content: 'Belongs to user 1.',
-        ownerId: 'user-1',
       );
 
       final secondUserService = NotesService(
@@ -81,6 +105,7 @@ void main() {
       final secondUserNotes = await secondUserService.getNotes();
 
       expect(firstUserNotes, hasLength(1));
+      expect(firstUserNotes.first.ownerId, 'user-1');
       expect(secondUserNotes, isEmpty);
     });
 
@@ -91,7 +116,6 @@ void main() {
           isEmpty,
           predicate<List<Note>>(
             (notes) =>
-                // notes != null &&
                 notes.length == 1 && notes.first.title == 'Streamed note',
           ),
         ]),
@@ -100,7 +124,6 @@ void main() {
       await notesService.createNote(
         title: 'Streamed note',
         content: 'Testing snapshots.',
-        ownerId: 'user-1',
       );
 
       await expectation;
